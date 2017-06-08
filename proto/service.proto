@@ -1,0 +1,29 @@
+syntax = "proto3";
+package proto;
+
+import "google/api/annotations.proto";
+
+message EchoMessage {
+ string value = 1;
+}
+message IndexRequest{
+  string param = 1;
+}
+message IndexResponse {
+  string html = 1;
+}
+
+service EchoService {
+  rpc Echo(EchoMessage) returns (EchoMessage) {
+    option (google.api.http) = {
+      post: "/v1/echo"
+      body: "*"
+    };
+  }
+}
+
+service IndexService {
+  rpc Index(IndexRequest) returns (IndexResponse) {
+    option (google.api.http).get = "/v1/service";
+  }
+}
