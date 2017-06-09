@@ -1,21 +1,53 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/**
+Eamon Collins
+Attempt at porting the optometry tool into Golang
+**/
 
 package main
 
-import "github.com/eamon-collins/goptometry/cmd"
+import (
+  "net/http"
+  "fmt"
+  "html/template"
+  "path/filepath"
+)
+
+const port = ":8000"
+
+
+type company struct{
+  company string
+  elapsed float
+  tags []tag
+}
+
+type tag struct{
+  label string
+  score float
+}
 
 func main() {
-	cmd.Execute()
+  fs := http.FileServer(http.Dir("static"))
+  http.Handle("/static/", http.StripPrefix("/static/", fs))
+  
+  http.HandleFunc("/", index)
+
+
+  fmt.Println("Starting server at localhost",port)
+  http.ListenAndServe(port, nil)
+}
+
+func index(w http.ResponseWriter, r *http.Request) {
+  ip := filepath.Join("templates", "index.html")
+  //fp := filepath.Join("templates", filepath.Clean(r.URL.Path))
+
+  results := []company
+  
+
+  tmpl, err := template.ParseFiles(ip)
+  if err != nil {
+    fmt.Println(err)
+    panic(err)
+  }
+  tmpl.ExecuteTemplate(w, "index", )
 }
