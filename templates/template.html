@@ -1,0 +1,20 @@
+{{define "form"}}
+<form method="post" action="/">
+  Image URL: <input type="text" name="imgurl" value="http://i.imgur.com/xK8I3xQ.jpg"/>
+  <select>
+  <label>Clarifai Model</label>
+    <option value='general-v1.3'>General</option>
+    <option value='travel-v1.0'>Travel</option>
+    <option value='food-items-v1.0'>Food</option>
+    <option value='nsfw-v1.0'>NSFW</option>
+    <option value='celeb-v1.3'>Celebrity</option>
+  </select>
+  <fieldset multiple>
+    <input type="checkbox" name="competitors" value="Google">Google
+    <input type="checkbox" name="competitors" value="Microsoft">Microsoft
+    <input type="checkbox" name="competitors" value="Amazon">Amazon
+    <input type="checkbox" name="competitors" value="Amazon">IBM
+  </fieldset>
+  <input type="submit" value="Process">
+</form>
+{{end}}
