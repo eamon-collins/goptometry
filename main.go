@@ -8,13 +8,17 @@ package main
 import (
   "net/http"
   "fmt"
+  "reflect"
   "time"
   "bytes"
   "encoding/json"
+  "encoding/base64"
   "io/ioutil"
   "html/template"
   "path/filepath"
   "github.com/clarifai/clarifai-go"
+  "github.com/aws/aws-sdk-go/aws/session"
+  "github.com/aws/aws-sdk-go/service/rekognition"
   "github.com/eamon-collins/goptometry/secrets"
 )
 
@@ -38,7 +42,6 @@ func main() {
   
   http.HandleFunc("/", index)
 
-
   fmt.Println("Starting server at localhost",port)
   http.ListenAndServe(port, nil)
 }
@@ -61,6 +64,16 @@ func index(w http.ResponseWriter, r *http.Request) {
     for _, comp := range r.Form["competitors"]{
       comp_map[comp] = true
     }
+    //make a base64 encoding of the image at the imgurl
+    image_res, err := http.Get(imgurl)
+    if err != nil{
+      panic(err)
+    }
+    image_bytes, _ := ioutil.ReadAll(image_res.Body)
+    fmt.Println(reflect.TypeOf(image_bytes))
+    var base64_bytes []byte
+    base64.StdEncoding.Encode(base64_bytes, image_bytes)
+
     var results []Company
 
     //CLARIFAI CLIENT PREDICT
@@ -88,6 +101,10 @@ func index(w http.ResponseWriter, r *http.Request) {
     //MICROSOFT AZURE VISUAL RECOGNITION
     if comp_map["Microsoft"]{
       results = append(results, request_microsoft(imgurl))
+    }
+    //AMAZON REKOGNITION
+    if comp_map["Amazon"]{
+      results = append(results, client_amazon(base64_bytes))
     }
   }
   
@@ -189,4 +206,14 @@ func request_microsoft(imgurl string) Company{
   return m
 }
 
-func request_
+func client_amazon(b64image []byte) Company{
+  sess := session.Must(session.NewSession())//&aws.Config{Region: aws.String("us-east-1"),}
+  rek :=rekognition.New(sess)
+  var ml int64
+  ml = 20
+  image := rekognition.Image{Bytes: b64image}
+  input := rekognition.DetectLabelsInput{Image:&image, MaxLabels:&ml}
+  resp, _ := rek.DetectLabels(&input)
+  fmt.Println(resp)
+  return *new(Company)
+}
