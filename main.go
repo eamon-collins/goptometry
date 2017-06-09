@@ -82,13 +82,28 @@ func index(w http.ResponseWriter, r *http.Request) {
     }
 
     //GOOGLE CLOUD VISION 
-    fmt.Println(build_google(imgurl))
+    if comp_map["Google"]{
+      results = append(results, request_google(imgurl))
+    }
+    //MICROSOFT AZURE VISUAL RECOGNITION
+    if comp_map["Microsoft"]{
+      results = append(results, request_microsoft(imgurl))
+    }
   }
-
   
 }
 
-func build_google(imgurl string) Company{
+func request_google(imgurl string) Company{
+  //response structure
+  type GoogleJson struct{
+    Responses []struct{
+      LabelAnnotations []struct{
+        Label string `json:"description"`
+        Score float32  `json:"score"`
+      } `json:"labelAnnotations"`
+    } `json:"responses"`
+  }
+
   //build the request
   client := &http.Client{
     Timeout: time.Second * 10, 
@@ -116,13 +131,62 @@ func build_google(imgurl string) Company{
   //parse the response
   defer resp.Body.Close()
   data, _ := ioutil.ReadAll(resp.Body)
-  var dat map[string]interface{}
+  var dat GoogleJson
   if err := json.Unmarshal(data, &dat); err != nil {
     panic(err)
   }
-  fmt.Println(dat)
+
   g := Company{Company: "Google", Elapsed: elapsed.Seconds()}
+  for _, tag := range dat.Responses[0].LabelAnnotations {
+    g.Tags = append(g.Tags, Tag{tag.Label, tag.Score})
+  }
 
   return g
-
 }
+
+func request_microsoft(imgurl string) Company{
+  //response structure
+  type MicrosoftJson struct{
+    Tags []struct{
+        Label string `json:"name"`
+        Score float32 `json:"confidence"`
+      } `json:"tags"`
+  }
+
+  //build the request
+  client := &http.Client{
+    Timeout: time.Second * 10, 
+  }
+  body := []byte(`{"url":"`+imgurl+`"}`)
+  req, err := http.NewRequest("POST", "https://eastus2.api.cognitive.microsoft.com/vision/v1.0/analyze", bytes.NewBuffer(body))
+  params := req.URL.Query()
+  params.Add("language", "en")
+  params.Add("visualFeatures", "Tags")
+  req.URL.RawQuery = params.Encode()
+  req.Header.Set("Ocp-Apim-Subscription-Key", secrets.Microsoft_Api_Key)
+  req.Header.Set("Content-Type", "application/json")
+
+  //make the request
+  start := time.Now()
+  resp, err := client.Do(req)
+  elapsed := time.Since(start)
+  if err != nil {
+    panic(err)
+  }
+
+  //parse the response
+  defer resp.Body.Close()
+  data, _ := ioutil.ReadAll(resp.Body)
+  var dat MicrosoftJson
+  if err := json.Unmarshal(data, &dat); err != nil {
+    panic(err)
+  }
+  m := Company{Company: "Microsoft", Elapsed: elapsed.Seconds()}
+  for _, tag := range dat.Tags {
+    m.Tags = append(m.Tags, Tag{tag.Label, tag.Score})
+  }
+
+  return m
+}
+
+func request_
