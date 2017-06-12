@@ -8,7 +8,6 @@ package main
 import (
   "net/http"
   "fmt"
-  "reflect"
   "time"
   "bytes"
   "encoding/json"
@@ -17,6 +16,7 @@ import (
   "html/template"
   "path/filepath"
   "github.com/clarifai/clarifai-go"
+  "github.com/aws/aws-sdk-go/aws"
   "github.com/aws/aws-sdk-go/aws/session"
   "github.com/aws/aws-sdk-go/service/rekognition"
   "github.com/eamon-collins/goptometry/secrets"
@@ -65,15 +65,21 @@ func index(w http.ResponseWriter, r *http.Request) {
       comp_map[comp] = true
     }
     //make a base64 encoding of the image at the imgurl
+    //amazon just wants normal bytes, but someone else might want base64
     image_res, err := http.Get(imgurl)
     if err != nil{
       panic(err)
     }
+    defer image_res.Body.Close()
     image_bytes, _ := ioutil.ReadAll(image_res.Body)
-    fmt.Println(reflect.TypeOf(image_bytes))
-    var base64_bytes []byte
-    base64.StdEncoding.Encode(base64_bytes, image_bytes)
+    image_buf := new(bytes.Buffer)
+    enc := base64.NewEncoder(base64.StdEncoding, image_buf)
+    defer enc.Close()
+    enc.Write(image_bytes)
+    //base64_bytes := image_buf.Bytes()
 
+    //the results array to write all applicable returned tags into
+    //will be passed to the html once filled
     var results []Company
 
     //CLARIFAI CLIENT PREDICT
@@ -104,7 +110,8 @@ func index(w http.ResponseWriter, r *http.Request) {
     }
     //AMAZON REKOGNITION
     if comp_map["Amazon"]{
-      results = append(results, client_amazon(base64_bytes))
+      results = append(results, client_amazon(image_bytes))
+
     }
   }
   
@@ -207,13 +214,33 @@ func request_microsoft(imgurl string) Company{
 }
 
 func client_amazon(b64image []byte) Company{
-  sess := session.Must(session.NewSession())//&aws.Config{Region: aws.String("us-east-1"),}
+  //response structure
+  //as long as I'm using the client to make the request, don't strictly need this but
+  //good to have it around as a template for how the response is structured
+  type AmazonJson struct {
+    Labels []struct{
+      Label string `json:"Label"`
+      Score float32 `json:"Confidence"`
+    } `json:"Labels"`
+  }
+
+
+  sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")}))//&aws.Config{Region: aws.String("us-east-1"),}
   rek :=rekognition.New(sess)
   var ml int64
   ml = 20
   image := rekognition.Image{Bytes: b64image}
   input := rekognition.DetectLabelsInput{Image:&image, MaxLabels:&ml}
-  resp, _ := rek.DetectLabels(&input)
-  fmt.Println(resp)
-  return *new(Company)
+  start := time.Now()
+  resp, err := rek.DetectLabels(&input)
+  elapsed := time.Since(start)
+  if err != nil {
+    panic(err)
+  }
+  a := Company{Company: "Amazon", Elapsed: elapsed.Seconds()}
+  for _, tag := range resp.Labels{
+    a.Tags = append(a.Tags, Tag{*tag.Name, float32(*tag.Confidence)})
+  }
+  fmt.Println(a)
+  return a
 }
