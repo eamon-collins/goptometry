@@ -20,3 +20,28 @@
   <input type="submit" value="Process">
 </form>
 {{end}}
+
+{{define "response"}}
+  {{if .Companies}}
+    {{$listlen := len .Companies}}
+    {{range .Companies}}
+      <div {{if lt $listlen 4}}class="col-md-4 text-center"{{else if eq $listlen 4}}class="col-md-3 text-center"{{else}}class="col-md-2 text-center"{{end}}>
+        <div class="panel panel-info panel-pricing">
+          <div class="panel-heading">
+              <i class="fa fa-check-square-o"></i>
+              <h3>{{ .Company }}</h3>
+          </div>
+
+          <table class="list-group">
+            <tr class = "list-group-item"><td>Time to analyze: </td><td>{{ .Elapsed }}</td></tr>
+            {{range .Tags}}
+              <tr class="list-group-item"><td>{{ .Label }}</td><td>{{ .Score }}</td></tr>
+            {{end}}
+
+          </table>
+
+        </div>
+      </div>
+    {{end}}
+  {{end}}
+{{end}}
