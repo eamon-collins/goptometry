@@ -81,46 +81,67 @@ func index(w http.ResponseWriter, r *http.Request) {
 		enc.Write(image_bytes)
 		//base64_bytes := image_buf.Bytes()
 
-		//the results array to write all applicable returned tags into
+		//the results object to write the responses to as they are passed to the channel
 		//will be passed to the html once filled
-		var results Results
+    var results Results
 
-		//CLARIFAI CLIENT PREDICT
-		if comp_map["Clarifai"] {
-			clarifai_predict := clarifai.NewClient(secrets.Clarifai_Client_ID, secrets.Clarifai_Client_Secret)
-			start := time.Now()
-			clarifai_resp, err := clarifai_predict.Tag(clarifai.TagRequest{URLs: []string{imgurl}})
-			elapsed := time.Since(start)
-			if err != nil {
-				fmt.Println(err)
-			}
-			c := Company{Company: "Clarifai", Elapsed: elapsed.Seconds()}
-			for i, label := range clarifai_resp.Results[0].Result.Tag.Classes {
-				c.Tags = append(c.Tags, Tag{label, clarifai_resp.Results[0].Result.Tag.Probs[i]})
-			}
-			results.Companies = append(results.Companies, c)
-		}
+		res_channel := make(chan *Company)
 
-		//GOOGLE CLOUD VISION
-		if comp_map["Google"] {
-			results.Companies = append(results.Companies, request_google(imgurl))
-		}
-		//MICROSOFT AZURE VISUAL RECOGNITION
-		if comp_map["Microsoft"] {
-			results.Companies = append(results.Companies, request_microsoft(imgurl))
-		}
-		//AMAZON REKOGNITION
-		if comp_map["Amazon"] {
-			results.Companies = append(results.Companies, client_amazon(image_bytes))
-		}
+    for key, _ := range comp_map {
+      go func(imgurl string, image_bytes []byte, key string) {
+  		  //CLARIFAI CLIENT PREDICT
+    		if key == "Clarifai"{
+          res_channel <- client_clarifai(imgurl)
+    		}
+    		//GOOGLE CLOUD VISION
+    		if key == "Google" {
+    			res_channel <- request_google(imgurl)
+    		}
+    		//MICROSOFT AZURE VISUAL RECOGNITION
+    		if key == "Microsoft" {
+    			res_channel <- request_microsoft(imgurl)
+    		}
+    		//AMAZON REKOGNITION
+    		if key == "Amazon" {
+    			res_channel <- client_amazon(image_bytes)
+    		}
+      }(imgurl, image_bytes, key)
+    }
 
-		fmt.Println(results)
-		tmpl.ExecuteTemplate(w, "index", &results)
+    //waits for responses from the goroutines fetching the requested companies,
+    //adds them to results.Companies as they come in.
+    for {
+      select {
+      case r := <-res_channel:
+        results.Companies = append(results.Companies, *r)
+        if len(results.Companies) == len(comp_map){
+          //return html, later may do this each time a company is received to simulate
+          //ajax calls, except it would reload whole result every time.
+          tmpl.ExecuteTemplate(w, "index", &results)
+          return
+        }
+      }
+    }
 	}
 
 }
 
-func request_google(imgurl string) Company {
+func client_clarifai(imgurl string) *Company {
+  clarifai_predict := clarifai.NewClient(secrets.Clarifai_Client_ID, secrets.Clarifai_Client_Secret)
+  start := time.Now()
+  clarifai_resp, err := clarifai_predict.Tag(clarifai.TagRequest{URLs: []string{imgurl}})
+  elapsed := time.Since(start)
+  if err != nil {
+    fmt.Println(err)
+  }
+  c := Company{Company: "Clarifai", Elapsed: elapsed.Seconds()}
+  for i, label := range clarifai_resp.Results[0].Result.Tag.Classes {
+    c.Tags = append(c.Tags, Tag{label, clarifai_resp.Results[0].Result.Tag.Probs[i]})
+  }
+  return &c
+}
+
+func request_google(imgurl string) *Company {
 	//response structure
 	type GoogleJson struct {
 		Responses []struct {
@@ -168,10 +189,10 @@ func request_google(imgurl string) Company {
 		g.Tags = append(g.Tags, Tag{tag.Label, tag.Score})
 	}
 
-	return g
+	return &g
 }
 
-func request_microsoft(imgurl string) Company {
+func request_microsoft(imgurl string) *Company {
 	//response structure
 	type MicrosoftJson struct {
 		Tags []struct {
@@ -213,10 +234,10 @@ func request_microsoft(imgurl string) Company {
 		m.Tags = append(m.Tags, Tag{tag.Label, tag.Score})
 	}
 
-	return m
+	return &m
 }
 
-func client_amazon(b64image []byte) Company {
+func client_amazon(b64image []byte) *Company {
 	//response structure
 	//as long as I'm using the client to make the request, don't strictly need this but
 	//good to have it around as a template for how the response is structured
@@ -244,5 +265,52 @@ func client_amazon(b64image []byte) Company {
 		a.Tags = append(a.Tags, Tag{*tag.Name, float32(*tag.Confidence)})
 	}
 	fmt.Println(a)
-	return a
+	return &a
+}
+
+func request_ibm(imgurl string) *Company {
+  //response structure
+  type IbmJson struct {
+    Images []struct {
+      Classifiers []struct{
+        Tags []struct {
+          Label string  `json:"class"`
+          Score float32 `json:"score"`
+        } `json:"classes"`
+      } `json:"classifiers"`
+    } `json:"images"`
+  }
+
+  //build the request
+  client := &http.Client{
+    Timeout: time.Second * 10,
+  }
+  body := []byte(`{"url":"` + imgurl + `"}`)
+  req, err := http.NewRequest("POST", "https://gateway-a.watsonplatform.net/visual-recognition/api/v3/classify", bytes.NewBuffer(body))
+  params := req.URL.Query()
+  params.Add("api_key", secrets.Ibm_Api_Key)
+  params.Add("version", "2016-05-20")
+  req.URL.RawQuery = params.Encode()
+
+  //make the request
+  start := time.Now()
+  resp, err := client.Do(req)
+  elapsed := time.Since(start)
+  if err != nil {
+    panic(err)
+  }
+
+  //parse the response
+  defer resp.Body.Close()
+  data, _ := ioutil.ReadAll(resp.Body)
+  var dat IbmJson
+  if err := json.Unmarshal(data, &dat); err != nil {
+    panic(err)
+  }
+  i := Company{Company: "IBM", Elapsed: elapsed.Seconds()}
+  for _, tag := range dat.Tags {
+    m.Tags = append(m.Tags, Tag{tag.Label, tag.Score})
+  }
+
+  return &m
 }
