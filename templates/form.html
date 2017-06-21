@@ -1,0 +1,77 @@
+{{define "form"}}
+<div class="buffer">
+  <div class="row">
+    <div class="col-md-9">
+      <form method="post" action="/">
+        Layout Test: <input type="checkbox" name="layouttest" value="layouttest">
+        <br/>
+        <div class="form-group form-inline  ">
+          <label for="text">Image URL </label></br>
+          <input type="text" name="imgurl" class="urlinput" value="https://samples.clarifai.com/metro-north.jpg"/>
+          <!-- http://i.imgur.com/xK8I3xQ.jpg -->
+        </div>
+        <div class="form-group">
+          <label for="select">Clarifai Model</label>
+          <select name="model_id" id="model_id" class="form-control">
+            <option value='aaa03c23b3724a16a56b629203edc62c'>General</option>
+            <option value='eee28c313d69466f836ab83287a54ed9'>Travel</option>
+            <option value='bd367be194cf45149e75f01d59f77ba7'>Food</option>
+            <option value='e9576d86d2004ed1a38ba0cf39ecb4b1'>NSFW</option>
+            <option value='e466caa0619f444ab97497640cefc4dc'>Celebrity</option>
+            <option value='e0be3b9d6a454f0493ac3a30784001ff'>Apparel</option>
+            <option value='c0c0ac362b03416da06ab3fa36fb58e3'>Demographics</option>
+            <option value='c443119bf2ed4da98487520d01a0b1e3'>Logo</option>
+            <option value='a403429f2ddf4b49b307e318f00e528b'>Face Detection</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div class="row">
+            <fieldset multiple id="competitor-fieldset">
+              <div class="form-inline">
+                <div class="col-sm-2">
+                  <div class="panel panel-default buffer">
+                    <label class="checkbox">
+                      <input type="checkbox" name="competitors" value="Google"> Google
+                    </label>
+                    <br/>
+                    <input disabled class="form-control comp-model-text" type=text id="google-model" name="google-model" value="General">
+                  </div>
+                </div>
+                <div class="col-sm-2">
+                  <div class="panel panel-default buffer">
+                    <label class="checkbox">
+                      <input type="checkbox" name="competitors" value="Microsoft"> Microsoft
+                    </label>
+                    <br/>
+                    <input disabled class="form-control comp-model-text" type=text id="microsoft-model" name="microsoft-model" value="General">
+                  </div>
+                </div>
+                <div class="col-sm-2">
+                  <div class="panel panel-default buffer">
+                    <label class="checkbox">
+                      <input type="checkbox" name="competitors" value="Amazon"> Amazon
+                    </label>
+                    <br/>
+                    <input disabled class="form-control comp-model-text" type=text id="amazon-model" name="amazon-model" value="General">
+                  </div>
+                </div>
+                <div class="col-sm-2">
+                  <div class="panel panel-default buffer">
+                    <label class="checkbox">
+                      <input type="checkbox" name="competitors" value="IBM"> IBM
+                    </label>
+                    <br/>
+                    <input disabled class="form-control comp-model-text" type=text id="ibm-model" name="ibm-model" value="General">
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+        <input type="submit" value="Process" class="btn btn-primary">
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}

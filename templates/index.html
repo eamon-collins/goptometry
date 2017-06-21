@@ -1,12 +1,14 @@
 {{ define "index" }}
 <head>
-  <h1>Test</h1>
   <link href="/static/css/bootstrap-theme.min.css" type="text/css" rel="stylesheet"/>
   <link href="/static/css/bootstrap.min.css" type="text/css" rel="stylesheet"/>
   <link href="/static/css/extra.css" type="text/css" rel="stylesheet"/>
+  <link href='https://fonts.googleapis.com/css?family=Roboto+Mono:500' rel='stylesheet' type='text/css'>
+  <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="/static/js/tweaks.js"></script>
 </head>
-</br>
 {{template "form"}}
 </br>
-{{template "response" .}}
+{{template "general" .}} <!-- Have this swap out templates based on which type of response it is. -->
 {{ end }}
