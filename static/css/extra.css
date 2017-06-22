@@ -6,9 +6,6 @@
   color: @dark-theme-subtext;
 }
 
-.model-container-tag-list-column {
-  margin-top: 25px;
-}
 
 .model-container-tag-list {
   width: 100%;
@@ -29,9 +26,6 @@
 
 .model-section {
   padding: 20px 25px;
-  &:not(:last-child){
-    box-shadow: 0 1px rgba(0,0,0,0.1);
-  }
 }
 
 .model-container-tag-list h3,
@@ -81,7 +75,7 @@
 }
 
 .panel-title a {
-    display: block;
+  text-decoration: none !important;
 }
 
 .buffer {
@@ -105,4 +99,8 @@
   width: 90px !important;
 }
 
+.time-data{
+  padding: 20px 0px 0px 25px;
+
+}
 

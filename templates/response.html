@@ -10,7 +10,7 @@
               Clarifai
             </h4>
           </div>
-          <section class="model-section">
+          <section class="predicted-concept-name time-data ">
             Elapsed: {{.Clarifai.Elapsed}}
           </section>
           <section class="model-section">
@@ -36,13 +36,16 @@
     {{$listlen := len .Companies}}
       <div class="panel-group">
       {{range $i, $el := .Companies}}
-        <div class="panel panel-default">
-          <div class="panel-heading">
+        <div class="panel panel-default ">
+          <div class="panel-heading accordiontag">
               <h4 class="panel-title">
                 <a data-toggle="collapse" href="{{(printf "#collapse%d" $i)|url}}">{{ $el.Company }}</a>
               </h4>
           </div>
           <div id="{{(printf "collapse%d" $i)}}" class="panel-collapse collapse">
+            <section class="predicted-concept-name time-data ">
+              Elapsed: {{$el.Elapsed}}
+            </section>
             <section class="model-section">
               <ul class="model-container-tag-list">
                 <li class="model-container-tag-list-column">
@@ -52,7 +55,7 @@
                 {{range $el.Tags}}
                   <li class="tag-block model-container-tag-list-item">
                       <span class="predicted-concept-name">{{.Label}}</span>
-                      <span class="tag-prob">{{.Score}}</span>
+                      <span class="tag-prob">{{if .Description}}{{.Description}}{{else}}{{.Score}}{{end}}</span>
                   </li>
                 {{end}}
               </ul>

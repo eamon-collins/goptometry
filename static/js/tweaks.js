@@ -11,7 +11,7 @@ var model_map = {
     "e0be3b9d6a454f0493ac3a30784001ff" : "General",  //apparel
     "c0c0ac362b03416da06ab3fa36fb58e3" : "General", //demographics
     "c443119bf2ed4da98487520d01a0b1e3" : "Logo",    //Logo
-    "a403429f2ddf4b49b307e318f00e528b" : "Face Detect", //Face detect
+    "a403429f2ddf4b49b307e318f00e528b" : "Face", //Face detect
   },
   "Microsoft": {
     "aaa03c23b3724a16a56b629203edc62c" : "General", //general
@@ -22,7 +22,7 @@ var model_map = {
     "e0be3b9d6a454f0493ac3a30784001ff" : "General",  //apparel
     "c0c0ac362b03416da06ab3fa36fb58e3" : "General", //demographics
     "c443119bf2ed4da98487520d01a0b1e3" : "General",    //Logo
-    "a403429f2ddf4b49b307e318f00e528b" : "Face Detect", //Face detect
+    "a403429f2ddf4b49b307e318f00e528b" : "Face", //Face detect
   },
   "Amazon": {
     "aaa03c23b3724a16a56b629203edc62c" : "General", //general
@@ -33,7 +33,7 @@ var model_map = {
     "e0be3b9d6a454f0493ac3a30784001ff" : "General",  //apparel
     "c0c0ac362b03416da06ab3fa36fb58e3" : "General", //demographics
     "c443119bf2ed4da98487520d01a0b1e3" : "General",    //Logo
-    "a403429f2ddf4b49b307e318f00e528b" : "Face Detect", //Face detect
+    "a403429f2ddf4b49b307e318f00e528b" : "Face", //Face detect
   },
   "IBM": {
     "aaa03c23b3724a16a56b629203edc62c" : "General", //general
@@ -44,7 +44,7 @@ var model_map = {
     "e0be3b9d6a454f0493ac3a30784001ff" : "General",  //apparel
     "c0c0ac362b03416da06ab3fa36fb58e3" : "General", //demographics
     "c443119bf2ed4da98487520d01a0b1e3" : "General",    //Logo
-    "a403429f2ddf4b49b307e318f00e528b" : "Face Detect", //Face detect
+    "a403429f2ddf4b49b307e318f00e528b" : "Face", //Face detect
   },
 }
 
@@ -53,10 +53,19 @@ $(document).ready(function() {
   //When a clarifai model is selected, change the text boxes for each competitor to reflect their equivalent model/function
   $("#model_id").change(function(){
     $("#competitor-fieldset .comp-model-text").each(function(){
-      $("this").prevAll().each(function(){console.log(this)})
-      $("this").val(model_map[$("this").prev("label input").val()][$("#model_id").val()])
+      $(this).val(model_map[$(this).siblings("label").children(".comp-check").val()][$("#model_id").val()])
     })
   })
 
+  //takes care of clickable area for accordion items
+  $(".accordiontag").click(function(){
+    $(this).siblings(".panel-collapse").collapse('toggle')
+  })
+
+  //expands clickable area of competitor checkbox to whole panel
+  $(".comp-panel").click(function(){
+    var check = $(this).find("input.comp-check")
+    check.prop("checked", !check.prop("checked"))
+  })
 
 })

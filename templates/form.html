@@ -1,9 +1,9 @@
 {{define "form"}}
 <div class="buffer">
   <div class="row">
-    <div class="col-md-9">
+    <div class="col-md-6">
       <form method="post" action="/">
-        Layout Test: <input type="checkbox" name="layouttest" value="layouttest">
+        Layout Test: <input type="checkbox" name="layouttest" value="layouttest" checked>
         <br/>
         <div class="form-group form-inline  ">
           <label for="text">Image URL </label></br>
@@ -29,40 +29,40 @@
           <div class="row">
             <fieldset multiple id="competitor-fieldset">
               <div class="form-inline">
-                <div class="col-sm-2">
-                  <div class="panel panel-default buffer">
+                <div class="col-sm-3">
+                  <div class="panel panel-default buffer comp-panel">
                     <label class="checkbox">
-                      <input type="checkbox" name="competitors" value="Google"> Google
+                      <input type="checkbox" class="comp-check" name="competitors" value="Google"> Google
                     </label>
                     <br/>
-                    <input disabled class="form-control comp-model-text" type=text id="google-model" name="google-model" value="General">
+                    <input readonly class="form-control comp-model-text" type=text id="google-model" name="google-model" value="General">
                   </div>
                 </div>
-                <div class="col-sm-2">
-                  <div class="panel panel-default buffer">
+                <div class="col-sm-3">
+                  <div class="panel panel-default buffer comp-panel">
                     <label class="checkbox">
-                      <input type="checkbox" name="competitors" value="Microsoft"> Microsoft
+                      <input type="checkbox" class="comp-check" name="competitors" value="Microsoft"> Microsoft
                     </label>
                     <br/>
-                    <input disabled class="form-control comp-model-text" type=text id="microsoft-model" name="microsoft-model" value="General">
+                    <input readonly class="form-control comp-model-text" type=text id="microsoft-model" name="microsoft-model" value="General">
                   </div>
                 </div>
-                <div class="col-sm-2">
-                  <div class="panel panel-default buffer">
+                <div class="col-sm-3">
+                  <div class="panel panel-default buffer comp-panel">
                     <label class="checkbox">
-                      <input type="checkbox" name="competitors" value="Amazon"> Amazon
+                      <input type="checkbox" class="comp-check" name="competitors" value="Amazon"> Amazon
                     </label>
                     <br/>
-                    <input disabled class="form-control comp-model-text" type=text id="amazon-model" name="amazon-model" value="General">
+                    <input readonly class="form-control comp-model-text" type=text id="amazon-model" name="amazon-model" value="General">
                   </div>
                 </div>
-                <div class="col-sm-2">
-                  <div class="panel panel-default buffer">
+                <div class="col-sm-3">
+                  <div class="panel panel-default buffer comp-panel">
                     <label class="checkbox">
-                      <input type="checkbox" name="competitors" value="IBM"> IBM
+                      <input type="checkbox" class="comp-check" name="competitors" value="IBM"> IBM
                     </label>
                     <br/>
-                    <input disabled class="form-control comp-model-text" type=text id="ibm-model" name="ibm-model" value="General">
+                    <input readonly class="form-control comp-model-text" type=text id="ibm-model" name="ibm-model" value="General">
                   </div>
                 </div>
               </div>
@@ -71,6 +71,13 @@
         </div>
         <input type="submit" value="Process" class="btn btn-primary">
       </form>
+    </div>
+    <div class="col-md-1"></div>
+    <div class="col-md-4">
+    {{if .Image}}
+    <!-- <img class="img-thumbnail img-responsive" id="analyzedImage" src="{{.Image}}" > url dependent version-->
+    <img class="img-thumbnail img-responsive" id="analyzedImage" src="data:image/png;base64,{{.Image}}" >
+    {{end}}
     </div>
   </div>
 </div>

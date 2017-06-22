@@ -7,9 +7,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+  "encoding/base64"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rekognition"
@@ -33,11 +33,13 @@ type Company struct {
 type Tag struct {
 	Label string
 	Score float32
-}
+  Description string
+  Image string //to display cropped sections next to logo results and face results
 
 type Results struct {
 	Clarifai  Company
 	Companies []Company
+  Image string //to display the original image at the top of the screen
 }
 
 func main() {
@@ -70,21 +72,6 @@ func index(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.ParseForm()
 
-		//don"t make requests to any apis, just give prefetched data in format to test out the layout
-		if r.FormValue("layouttest") == "layouttest" {
-			var results Results
-			results.Clarifai = Company{Company: "Clarifai", Elapsed: 1.322, Tags: []Tag{Tag{Label: "summer", Score: 0.98168695}, Tag{Label: "nature", Score: 0.97212166}, Tag{Label: "farm", Score: 0.9689047}, Tag{Label: "grass", Score: 0.95977676}, Tag{Label: "outdoors", Score: 0.9521229}, Tag{Label: "field", Score: 0.9091958}}}
-			results.Companies = append(results.Companies, Company{Company: "Google", Elapsed: 2.332, Tags: []Tag{Tag{Label: "rural area", Score: 0.6766008}, Tag{Label: "farm", Score: 0.6482424}, Tag{Label: "meadow", Score: 0.59396565}, Tag{Label: "horse like mammal", Score: 0.51159537}}})
-			results.Companies = append(results.Companies, Company{Company: "IBM", Elapsed: 2.109, Tags: []Tag{Tag{Label: "green color", Score: 0.963}, Tag{Label: "animal", Score: 0.765}}}) /** {"tag": u"mammal", "score": 0.653}, {"tag": u"domestic animal", "score": 0.653}, {"tag": u"dog", "score": 0.652}, {"tag": u"ruminant", "score": 0.603}, {"tag": u"deer", "score": 0.602}, {"tag": u"vizsla dog", "score": 0.569}, {"tag": u"Great Dane dog", "score": 0.558}, {"tag": u"person", "score": 0.55}, {"tag": u"boy at farm", "score": 0.549}, {"tag": u"palomino horse", "score": 0.53}]})
-			  if amazon:
-			    results.append({"company": "Amazon", "elapsed": 3.217, "tags": [{"tag": u"Human", "score": 99.30406951904297}, {"tag": u"People", "score": 99.30635070800781}, {"tag": u"Person", "score": 99.30635070800781}, {"tag": u"Backyard", "score": 77.3866958618164}, {"tag": u"Yard", "score": 77.3866958618164}, {"tag": u"Ivy", "score": 76.58114624023438}, {"tag": u"Plant", "score": 76.58114624023438}, {"tag": u"Vine", "score": 76.58114624023438}, {"tag": u"Shorts", "score": 75.4872055053711}, {"tag": u"Blossom", "score": 67.45735168457031}, {"tag": u"Flora", "score": 67.45735168457031}, {"tag": u"Flower", "score": 67.45735168457031}, {"tag": u"Herbal", "score": 63.904659271240234}, {"tag": u"Herbs", "score": 63.904659271240234}, {"tag": u"Planter", "score": 63.904659271240234}]})
-			  if microsoft:
-			    results.append({"company": "Microsoft", "elapsed": 2.698, "tags": [{"tag": u"tree", "score": 0.9998617172241211}, {"tag": u"outdoor", "score": 0.999527096748352}, {"tag": u"grass", "score": 0.9965176582336426}, {"tag": u"standing", "score": 0.8547968864440918}, {"tag": u"house", "score": 0.4055963158607483}]})
-			  **/
-			tmpl.ExecuteTemplate(w, "index", &results)
-			return
-		}
-
 		imgurl := template.HTMLEscapeString(r.Form.Get("imgurl"))
 		comp_map := make(map[string]bool)
 		for _, comp := range r.Form["competitors"] {
@@ -94,50 +81,60 @@ func index(w http.ResponseWriter, r *http.Request) {
     fmt.Println(model_id)
 
 		//make a base64 encoding of the image at the imgurl
-		//amazon just wants normal bytes, but someone else might want base64
-		image_res, err := http.Get(imgurl)
-		if err != nil {
-			panic(err)
-		}
-		defer image_res.Body.Close()
-		image_bytes, _ := ioutil.ReadAll(image_res.Body)
-		image_buf := new(bytes.Buffer)
-		enc := base64.NewEncoder(base64.StdEncoding, image_buf)
-		defer enc.Close()
-		enc.Write(image_bytes)
-		//base64_bytes := image_buf.Bytes()
+		//amazon just wants normal bytes, base64 is for displaying
+    image_res, err := http.Get(imgurl)
+    if err != nil {
+      panic(err)
+    }
+    defer image_res.Body.Close()
+    image_bytes, _ := ioutil.ReadAll(image_res.Body)
+    base64_string := base64.StdEncoding.EncodeToString(image_bytes)
+
+
+        //don"t make requests to any apis, just give prefetched data in format to test out the layout
+    if r.FormValue("layouttest") == "layouttest" {
+      var results Results
+      results.Image = base64_string
+      results.Clarifai = Company{Company: "Clarifai", Elapsed: 1.322, Tags: []Tag{Tag{Label: "summer", Score: 0.98168695}, Tag{Label: "nature", Score: 0.97212166}, Tag{Label: "farm", Score: 0.9689047}, Tag{Label: "grass", Score: 0.95977676}, Tag{Label: "outdoors", Score: 0.9521229}, Tag{Label: "field", Score: 0.9091958}}}
+      results.Companies = append(results.Companies, Company{Company: "Google", Elapsed: 2.332, Tags: []Tag{Tag{Label: "rural area", Score: 0.6766008}, Tag{Label: "farm", Score: 0.6482424}, Tag{Label: "meadow", Score: 0.59396565}, Tag{Label: "horse like mammal", Score: 0.51159537}}})
+      results.Companies = append(results.Companies, Company{Company: "IBM", Elapsed: 2.109, Tags: []Tag{Tag{Label: "green color", Score: 0.963}, Tag{Label: "animal", Score: 0.765}}})
+      tmpl.ExecuteTemplate(w, "index", &results)
+      return
+    }
 
 		//the results object to write the responses to as they are passed to the channel
 		//will be passed to the html once filled
 		var results Results
+    //add the image being analyzed in base64 form
+    results.Image = base64_string
 
 		res_channel := make(chan *Company)
 
     //For each company result requested, start a function in a separate goroutine to retrieve that data
     //This allows all requests to be executed concurently rather than sequentially
-    go func(imgurl string, model_id string) {
-      res_channel <- request_clarifai(imgurl, model_id)
-    }(imgurl, model_id)
+    go func(imgurl string, image_bytes []byte, model_id string) {
+      res_channel <- request_clarifai(imgurl, image_bytes, model_id)
+    }(imgurl, image_bytes, model_id)
 
 		for key, _ := range comp_map {
-			go func(imgurl string, image_bytes []byte, key string) {
+			go func(imgurl string, image_bytes []byte, image_bytes []byte, key string) {
 				//GOOGLE CLOUD VISION
 				if key == "Google" {
-					res_channel <- request_google(imgurl)
+					res_channel <- request_google(imgurl, image_bytes, r.Form.Get("google-model"))
 				}
 				//MICROSOFT AZURE VISUAL RECOGNITION
 				if key == "Microsoft" {
-					res_channel <- request_microsoft(imgurl)
+					res_channel <- request_microsoft(imgurl, image_bytes, r.Form.Get("microsoft-model"))
 				}
 				//AMAZON REKOGNITION
 				if key == "Amazon" {
-					res_channel <- client_amazon(image_bytes)
+					res_channel <- client_amazon(image_bytes, r.Form.Get("amazon-model"))
 				}
 				//IBM VISUAL RECOGNITION
 				if key == "IBM" {
-					res_channel <- request_ibm(imgurl)
+					res_channel <- request_ibm(imgurl, image_bytes, r.Form.Get("ibm-model"))
 				}
-			}(imgurl, image_bytes, key)
+			}(imgurl, image_bytes, image_bytes, key)
 		}
 
 		//waits for responses from the goroutines fetching the requested companies,
@@ -158,7 +155,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 					tmpl.ExecuteTemplate(w, "index", &results)
 					return
 			  }
-      case <-time.After(time.Second * 5):
+      case <-time.After(time.Second * 15):
         fmt.Println("Timeout")
         tmpl.ExecuteTemplate(w, "index", &results)
         return
@@ -168,7 +165,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func client_clarifai(imgurl string) *Company {
+func client_clarifai(imgurl string, image_bytes []byte) *Company {
 	clarifai_predict := clarifai.NewClient(secrets.Clarifai_Client_ID, secrets.Clarifai_Client_Secret)
 	start := time.Now()
 	clarifai_resp, err := clarifai_predict.Tag(clarifai.TagRequest{URLs: []string{imgurl}})
@@ -178,12 +175,12 @@ func client_clarifai(imgurl string) *Company {
 	}
 	c := Company{Company: "Clarifai", Elapsed: elapsed.Seconds()}
 	for i, label := range clarifai_resp.Results[0].Result.Tag.Classes {
-		c.Tags = append(c.Tags, Tag{label, clarifai_resp.Results[0].Result.Tag.Probs[i]})
+		c.Tags = append(c.Tags, Tag{Label: label, Score: clarifai_resp.Results[0].Result.Tag.Probs[i]})
 	}
 	return &c
 }
 
-func request_clarifai(imgurl string, model_id string) *Company {
+func request_clarifai(imgurl string, image_bytes []byte, model_id string) *Company {
 	//response structure
 	type ClarifaiJson struct {
 		Outputs []struct {
@@ -192,6 +189,30 @@ func request_clarifai(imgurl string, model_id string) *Company {
 					Label string  `json:"name"`
 					Score float32 `json:"value"`
 				} `json:"concepts"`
+        Regions []struct {
+          Data struct {
+            Face struct {
+              Identity struct {
+                Concepts []struct {
+                  Label string `json:"name"`
+                  Score float32 `json:"value"`
+                } `json:"concepts"`
+              } `json:"identity"`
+            } `json:"face"`
+            Concepts []struct {
+              Label string `json:"name"`
+              Score float32 `json:"value"`
+            } `json:"concepts"`
+            Region_Info struct {
+              Bounding_Box struct {
+                Top float32 `json:"top_row"`
+                Left float32 `json:"left_col"`
+                Bottom float32 `json:"bottom_row"`
+                Right float32 `json:"right_col"`
+              } `json:"bounding_box"`
+            } `json:"region_info"`
+          } `json:"data"`
+        } `json:"regions"`
 			} `json:"data"`
 		} `json:"outputs"`
 	}
@@ -217,20 +238,41 @@ func request_clarifai(imgurl string, model_id string) *Company {
 	//parse the response
 	defer resp.Body.Close()
 	data, _ := ioutil.ReadAll(resp.Body)
+  fmt.Println(string(data))
 	var dat ClarifaiJson
 	if err := json.Unmarshal(data, &dat); err != nil {
 		panic(err)
 	}
+
 	c := Company{Company: "Clarifai", Elapsed: elapsed.Seconds()}
-	for _, tag := range dat.Outputs[0].Data.Concepts {
-		c.Tags = append(c.Tags, Tag{tag.Label, tag.Score})
-	}
+  if model_id == "e466caa0619f444ab97497640cefc4dc" { //Celebrity
+    //take the top result from each region, ie the most probable
+    //identity for each face detected
+    for _, celeb := range dat.Outputs[0].Data.Regions {
+      c.Tags = append(c.Tags, Tag{Label: celeb.Data.Face.Identity.Concepts[0].Label, Score: celeb.Data.Face.Identity.Concepts[0].Score})
+    }
+  } else if model_id == "c443119bf2ed4da98487520d01a0b1e3" { //Logo
+    for _, logo := range dat.Outputs[0].Data.Regions {
+      c.Tags = append(c.Tags, Tag{Label: logo.Data.Concepts[0].Label, Score: logo.Data.Concepts[0].Score})
+    }
+  } else if model_id =="a403429f2ddf4b49b307e318f00e528b" { //Face detection
+    for _, face := range dat.Outputs[0].Data.Regions {
+      box := ClarifaiBound{Top: face.Data.Region_Info.Bounding_Box.Top,
+                          Bottom: face.Data.Region_Info.Bounding_Box.Bottom,
+                          Left: face.Data.Region_Info.Bounding_Box.Left,
+                          Right: face.Data.Region_Info.Bounding_Box.Right}
+      c.Tags = append(c.Tags, Tag{Image: Clarifai_Image_Crop(box, image_bytes)})
+    }
+  }else { //General and everything that follow that format
+  	for _, tag := range dat.Outputs[0].Data.Concepts {
+  		c.Tags = append(c.Tags, Tag{Label: tag.Label, Score: tag.Score})
+  	}
+  }
 
 	return &c
-
 }
 
-func request_google(imgurl string) *Company {
+func request_google(imgurl string, image_bytes []byte, model_id string) *Company {
 	//response structure
 	type GoogleJson struct {
 		Responses []struct {
@@ -238,6 +280,16 @@ func request_google(imgurl string) *Company {
 				Label string  `json:"description"`
 				Score float32 `json:"score"`
 			} `json:"labelAnnotations"`
+      LogoAnnotations []struct {
+        Label string `json:"description"`
+        Score float32 `json:"score"`
+      } `json:"LogoAnnotations"` //come back and deal with bounding box?
+      SafeSearchAnnotation struct {
+        Adult string `json:"adult"`
+        Spoof string `json:"spoof"`
+        Medical string `json:"medical"`
+        Violence string `json:"violence"`
+      } `json:"safeSearchAnnotation"`
 		} `json:"responses"`
 	}
 
@@ -245,12 +297,24 @@ func request_google(imgurl string) *Company {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
+  //vary based on type of request to be made
+  var request_type string
+  if model_id == "General" {
+    request_type = "LABEL_DETECTION"
+  } else if model_id == "NSFW" {
+    request_type = "SAFE_SEARCH_DETECTION"
+  } else if model_id == "Logo" {
+    request_type = "LOGO_DETECTION"
+  } else if model_id == "Face" {
+    request_type = "FACE_DETECTION"
+  }
+
 	body := []byte(`{requests:[{
     "image":{
       "source":{
         "imageUri":"` + imgurl + `"}},
         "features":[{
-          "type":"LABEL_DETECTION",
+          "type":"`+request_type+`",
           "maxResults":20}]}]}`)
 	req, err := http.NewRequest("POST", "https://vision.googleapis.com/v1/images:annotate", bytes.NewBuffer(body))
 	q := req.URL.Query()
@@ -268,26 +332,54 @@ func request_google(imgurl string) *Company {
 	//parse the response
 	defer resp.Body.Close()
 	data, _ := ioutil.ReadAll(resp.Body)
+  fmt.Println(string(data))
 	var dat GoogleJson
 	if err := json.Unmarshal(data, &dat); err != nil {
 		panic(err)
 	}
 
 	g := Company{Company: "Google", Elapsed: elapsed.Seconds()}
-	for _, tag := range dat.Responses[0].LabelAnnotations {
-		g.Tags = append(g.Tags, Tag{tag.Label, tag.Score})
-	}
+  if model_id == "General" {
+    for _, tag := range dat.Responses[0].LabelAnnotations {
+      g.Tags = append(g.Tags, Tag{Label: tag.Label, Score: tag.Score})
+    }
+  } else if model_id == "NSFW" {
+    g.Tags = append(g.Tags, Tag{Label: "adult", Description: dat.Responses[0].SafeSearchAnnotation.Adult})
+    g.Tags = append(g.Tags, Tag{Label: "spoof", Description: dat.Responses[0].SafeSearchAnnotation.Spoof})
+    g.Tags = append(g.Tags, Tag{Label: "medical", Description: dat.Responses[0].SafeSearchAnnotation.Medical})
+    g.Tags = append(g.Tags, Tag{Label: "violence", Description: dat.Responses[0].SafeSearchAnnotation.Violence})
+  } else if model_id == "Logo" {
+    for _, tag := range dat.Responses[0].LogoAnnotations {
+      g.Tags = append(g.Tags, Tag{Label: tag.Label, Score: tag.Score})
+    }
+  } else if model_id == "Face" {
+
+  }
+
 
 	return &g
 }
 
-func request_microsoft(imgurl string) *Company {
+func request_microsoft(imgurl string, image_bytes []byte, model_id string) *Company {
 	//response structure
 	type MicrosoftJson struct {
 		Tags []struct {
 			Label string  `json:"name"`
 			Score float32 `json:"confidence"`
 		} `json:"tags"`
+    Adult struct {
+      AdultScore float32 `json:"adultScore"`
+      RacyScore float32 `json:"racyScore"`
+    } `json:"adult"`
+    Categories []struct{
+      Name string `json:"name"`
+      Detail struct {
+        Celebrities []struct {
+          Label string `json:"name"`
+          Score float32 `json:"confidence"`
+        } `json:"celebrities"`
+      } `json:"detail"`
+    } `json:"categories"`
 	}
 
 	//build the request
@@ -298,11 +390,22 @@ func request_microsoft(imgurl string) *Company {
 	req, err := http.NewRequest("POST", "https://eastus2.api.cognitive.microsoft.com/vision/v1.0/analyze", bytes.NewBuffer(body))
 	params := req.URL.Query()
 	params.Add("language", "en")
-	params.Add("visualFeatures", "Tags")
-	req.URL.RawQuery = params.Encode()
+
 	req.Header.Set("Ocp-Apim-Subscription-Key", secrets.Microsoft_Api_Key)
 	req.Header.Set("Content-Type", "application/json")
 
+  //vary based on type of request
+  if model_id == "General" {
+    params.Add("visualFeatures", "Tags")
+  } else if model_id == "NSFW" {
+    params.Add("visualFeatures", "Adult")
+  } else if model_id == "Celebrity" {
+    params.Add("visualFeatures", "Categories")
+    params.Add("details", "Celebrities")
+  } else if model_id == "Face" {
+
+  }
+  req.URL.RawQuery = params.Encode()
 	//make the request
 	start := time.Now()
 	resp, err := client.Do(req)
@@ -314,19 +417,32 @@ func request_microsoft(imgurl string) *Company {
 	//parse the response
 	defer resp.Body.Close()
 	data, _ := ioutil.ReadAll(resp.Body)
+  fmt.Println(string(data))
 	var dat MicrosoftJson
 	if err := json.Unmarshal(data, &dat); err != nil {
 		panic(err)
 	}
 	m := Company{Company: "Microsoft", Elapsed: elapsed.Seconds()}
+  if model_id == "NSFW" {
+    m.Tags = append(m.Tags, Tag{Label: "adultScore", Score: dat.Adult.AdultScore})
+    m.Tags = append(m.Tags, Tag{Label: "racyScore", Score: dat.Adult.RacyScore})
+  } else if model_id == "Celebrity" {
+    for _, cat := range dat.Categories {
+      if cat.Name == "people_" {
+        for _, tag := range cat.Detail.Celebrities {
+          m.Tags = append(m.Tags, Tag{Label: tag.Label, Score: tag.Score})
+        }
+      }
+    }
+  }
 	for _, tag := range dat.Tags {
-		m.Tags = append(m.Tags, Tag{tag.Label, tag.Score})
+		m.Tags = append(m.Tags, Tag{Label: tag.Label, Score: tag.Score})
 	}
 
 	return &m
 }
 
-func client_amazon(b64image []byte) *Company {
+func client_amazon(image_bytes []byte, model_id string) *Company {
 	//response structure
 	//as long as I"m using the client to make the request, don"t strictly need this but
 	//good to have it around as a template for how the response is structured
@@ -335,29 +451,62 @@ func client_amazon(b64image []byte) *Company {
 			Label string  `json:"Label"`
 			Score float32 `json:"Confidence"`
 		} `json:"Labels"`
+
 	}
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) //&aws.Config{Region: aws.String("us-east-1"),}
 	rek := rekognition.New(sess)
 	var ml int64
 	ml = 20
-	image := rekognition.Image{Bytes: b64image}
-	input := rekognition.DetectLabelsInput{Image: &image, MaxLabels: &ml}
-	start := time.Now()
-	resp, err := rek.DetectLabels(&input)
-	elapsed := time.Since(start)
-	if err != nil {
-		panic(err)
-	}
-	a := Company{Company: "Amazon", Elapsed: elapsed.Seconds()}
-	for _, tag := range resp.Labels {
-		a.Tags = append(a.Tags, Tag{*tag.Name, float32(*tag.Confidence)})
-	}
+  a := Company{Company: "Amazon"}
+	image := rekognition.Image{Bytes: image_bytes}
+  if model_id == "General" {
+    //set up input and make the timed request
+  	input := rekognition.DetectLabelsInput{Image: &image, MaxLabels: &ml}
+  	start := time.Now()
+  	resp, err := rek.DetectLabels(&input)
+  	elapsed := time.Since(start)
+    if err != nil {
+      panic(err)
+    }
+    //add the results to the company info
+    a.Elapsed = elapsed.Seconds()
+    for _, tag := range resp.Labels {
+      a.Tags = append(a.Tags, Tag{Label: *tag.Name, Score: float32(*tag.Confidence)})
+    }
+  } else if model_id == "Celebrity" {
+    input := rekognition.RecognizeCelebritiesInput{Image: &image}
+    start := time.Now()
+    resp, err := rek.RecognizeCelebrities(&input)
+    elapsed := time.Since(start)
+    if err != nil {
+      panic(err)
+    }
+    a.Elapsed = elapsed.Seconds()
+    for _, tag := range resp.CelebrityFaces {
+      a.Tags = append(a.Tags, Tag{Label: *tag.Name, Score: float32(*tag.MatchConfidence)})
+    }
+  } else if model_id == "NSFW" {
+    input := rekognition.DetectModerationLabelsInput{Image: &image}
+    start := time.Now()
+    resp, err := rek.DetectModerationLabels(&input)
+    elapsed := time.Since(start)
+    fmt.Println(resp)
+    if err != nil {
+      panic(err)
+    }
+    a.Elapsed = elapsed.Seconds()
+    for _, tag := range resp.ModerationLabels {
+      a.Tags = append(a.Tags, Tag{Label: *tag.Name, Score: float32(*tag.Confidence)})
+    }
+  } else if model_id == "Face" {
+
+  }
 
 	return &a
 }
 
-func request_ibm(imgurl string) *Company {
+func request_ibm(imgurl string, image_bytes []byte, model_id string) *Company {
 	//response structure
 	type IbmJson struct {
 		Images []struct {
@@ -398,7 +547,7 @@ func request_ibm(imgurl string) *Company {
 	}
 	i := Company{Company: "IBM", Elapsed: elapsed.Seconds()}
 	for _, tag := range dat.Images[0].Classifiers[0].Tags {
-		i.Tags = append(i.Tags, Tag{tag.Label, tag.Score})
+		i.Tags = append(i.Tags, Tag{Label: tag.Label, Score: tag.Score})
 	}
 
 	return &i
