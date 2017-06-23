@@ -2,6 +2,17 @@
 
 //map of competitors equivalent models
 var model_map = {
+  "Clarifai": {
+    "aaa03c23b3724a16a56b629203edc62c" : "General", //general
+    "eee28c313d69466f836ab83287a54ed9" : "Travel", //Travel
+    "bd367be194cf45149e75f01d59f77ba7" : "Food", //Food
+    "e9576d86d2004ed1a38ba0cf39ecb4b1" : "NSFW",    //NSFW
+    "e466caa0619f444ab97497640cefc4dc" : "Celebrity",  //Celeb
+    "e0be3b9d6a454f0493ac3a30784001ff" : "Apparel",  //apparel
+    "c0c0ac362b03416da06ab3fa36fb58e3" : "Demographics", //demographics
+    "c443119bf2ed4da98487520d01a0b1e3" : "Logo",    //Logo
+    "a403429f2ddf4b49b307e318f00e528b" : "Face Detection", //Face detect
+  },
   "Google": {
     "aaa03c23b3724a16a56b629203edc62c" : "General", //general
     "eee28c313d69466f836ab83287a54ed9" : "General", //Travel

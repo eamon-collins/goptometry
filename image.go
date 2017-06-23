@@ -15,18 +15,22 @@ import (
 	"image/png"
 )
 
+//size of each dimension of the thumbnail for logos and
+//faces displayed in the results panes
 const thumbnailSize int = 60
 
 //accepts floats as ratios of the total image dimensions
-type ClarifaiBound struct {
+type RatioBound struct {
 	Top, Bottom, Left, Right float32
 }
+
 //accepts ints as actual pixel crop specifications
-type GoogleBound struct {
+type PixelBound struct {
 	Top, Bottom, Left, Right int
 }
 
-func Clarifai_Image_Crop(bound ClarifaiBound, image_bytes []byte) string {
+//Crop specified by floats representing ratios of the total image dimension
+func Ratio_Image_Crop(bound RatioBound, image_bytes []byte) string {
 	//decode bytes into image.Image instance
 	buf := bytes.NewBuffer(image_bytes)
 	img, _, err := image.Decode(buf)
@@ -49,8 +53,8 @@ func Clarifai_Image_Crop(bound ClarifaiBound, image_bytes []byte) string {
 	return b64string
 }
 
-//also works for microsoft with small adjustments in main.go's microsoft_request function
-func Google_Image_Crop(bound GoogleBound, image_bytes []byte) string {
+//Crop specified by actual pixel values
+func Pixel_Image_Crop(bound PixelBound, image_bytes []byte) string {
 	buf := bytes.NewBuffer(image_bytes)
 	img, _, err := image.Decode(buf)
 	if err != nil {
