@@ -21,8 +21,9 @@
               </li>
               {{range .Clarifai.Tags}}
                 <li class="tag-block model-container-tag-list-item">
-                    <span class="predicted-concept-name">{{.Label}}</span>
-                    <span class="tag-prob">{{.Score}}</span>
+                  {{if .Image}}<img src="data:image/png;base64,{{.Image}}">{{end}}
+                  <span class="predicted-concept-name">{{.Label}}</span>
+                  <span class="tag-prob">{{if (ne .Score 0.0)}}{{.Score}}{{end}}</span>
                 </li>
               {{end}}
             </ul>
@@ -54,8 +55,11 @@
                 </li>
                 {{range $el.Tags}}
                   <li class="tag-block model-container-tag-list-item">
-                      <span class="predicted-concept-name">{{.Label}}</span>
-                      <span class="tag-prob">{{if .Description}}{{.Description}}{{else}}{{.Score}}{{end}}</span>
+                    {{if .Image}}<img class="img-responsive" src="data:image/png;base64,{{.Image}}">{{end}}
+                    <span class="predicted-concept-name">
+                    {{.Label}}
+                    </span>
+                    <span class="tag-prob">{{if .Description}}{{.Description}}{{else if gt .Score 0.0}}{{.Score}}{{else}}{{end}}</span>
                   </li>
                 {{end}}
               </ul>
