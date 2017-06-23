@@ -49,6 +49,27 @@ var model_map = {
 }
 
 $(document).ready(function() {
+  //takes a snapshot of the html of the response and writes it to file
+  //used for an archive of previous requests
+  if($("#archive-page").length > 0) {
+    //construct the string of html to be written to archive
+    var htmlString = `<div class="buffer"><div class="row"><div class="col-md-2">`
+    htmlString += $("#analyzedImage")[0].outerHTML
+    htmlString += `</div>`
+    $(".response-col").each(function() {
+      htmlString += $(this)[0].outerHTML
+    })
+    htmlString += `</div></div>`
+
+    //ajax call back to go server to store the html in the archive
+    $.ajax({url: 'http://localhost:8000/writearchive/', type: 'POST', data: htmlString})
+  }
+  //expand the clarifai response initially, except on the archive page
+  //don't have it expanded by default so that when the archive stores it, it is
+  //collapsed and compact
+  if($("#currently-archive").length == 0) {
+    $("#collapseClarifai").collapse('show')
+  }
 
   //When a clarifai model is selected, change the text boxes for each competitor to reflect their equivalent model/function
   $("#model_id").change(function(){
@@ -66,6 +87,11 @@ $(document).ready(function() {
   $(".comp-panel").click(function(){
     var check = $(this).find("input.comp-check")
     check.prop("checked", !check.prop("checked"))
+  })
+
+  $("#reset-archive").click(function(){
+    //resets archive, POST so that you can't do it by simply visiting the url
+    $.ajax({url: 'http://localhost:8000/resetarchive/', type: 'POST', data: "delete"})
   })
 
 })

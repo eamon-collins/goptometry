@@ -1,39 +1,41 @@
-{{define "general"}}
+{{define "response"}}
 <div class="buffer">
   <div class="row">
   {{if .Clarifai}}
-    <div class="col-md-5">
+    <div class="col-md-5 response-col">
       <div class="panel-group">
         <div class="panel panel-default">
-          <div class="panel-heading">
+          <div class="panel-heading accordiontag">
             <h4 class="panel-title">
-              Clarifai
+              <a data-toggle="collapse" href="#collapseClarifai">Clarifai</a>
             </h4>
           </div>
-          <section class="predicted-concept-name time-data ">
-            Elapsed: {{.Clarifai.Elapsed}}
-          </section>
-          <section class="model-section">
-            <ul class="model-container-tag-list">
-              <li class="model-container-tag-list-column">
-                <h3>Predicted Concept</h3>
-                <h3>Score</h3>
-              </li>
-              {{range .Clarifai.Tags}}
-                <li class="tag-block model-container-tag-list-item">
-                  {{if .Image}}<img src="data:image/png;base64,{{.Image}}">{{end}}
-                  <span class="predicted-concept-name">{{.Label}}</span>
-                  <span class="tag-prob">{{if (ne .Score 0.0)}}{{.Score}}{{end}}</span>
+          <div id="collapseClarifai" class="panel-collapse collapse">
+            <section class="predicted-concept-name time-data ">
+              Elapsed: {{.Clarifai.Elapsed}}
+            </section>
+            <section class="model-section">
+              <ul class="model-container-tag-list">
+                <li class="model-container-tag-list-column">
+                  <h3>Predicted Concept</h3>
+                  {{if ne (index .Clarifai.Tags 0).Score 0.0}}<h3>Score</h3>{{end}}
                 </li>
-              {{end}}
-            </ul>
-          </section>
+                {{range .Clarifai.Tags}}
+                  <li class="tag-block model-container-tag-list-item">
+                    {{if .Image}}<img src="data:image/png;base64,{{.Image}}">{{end}}
+                    <span class="predicted-concept-name">{{.Label}}</span>
+                    <span class="tag-prob">{{if (ne .Score 0.0)}}{{.Score}}{{end}}</span>
+                  </li>
+                {{end}}
+              </ul>
+            </section>
+          </div>
         </div>
       </div>
     </div>
   {{end}}
   {{if .Companies}}
-    <div class="col-md-5">
+    <div class="col-md-5 response-col">
     {{$listlen := len .Companies}}
       <div class="panel-group">
       {{range $i, $el := .Companies}}
@@ -51,7 +53,7 @@
               <ul class="model-container-tag-list">
                 <li class="model-container-tag-list-column">
                   <h3>Predicted Concept</h3>
-                  <h3>Score</h3>
+                  {{if ne (index $el.Tags 0).Score 0.0}}<h3>Score</h3>{{end}}
                 </li>
                 {{range $el.Tags}}
                   <li class="tag-block model-container-tag-list-item">

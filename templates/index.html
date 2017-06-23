@@ -9,6 +9,7 @@
   <script type="text/javascript" src="/static/js/tweaks.js"></script>
 </head>
 {{template "form" .}}
-</br>
-{{template "general" .}} <!-- Have this swap out templates based on which type of response it is. -->
+<br/>
+{{template "response" .}}
+{{if .Archive}}<div id="archive-page" style="display: none;"> </div>{{end}}
 {{ end }}

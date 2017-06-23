@@ -7,9 +7,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+  "os"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rekognition"
@@ -41,6 +41,7 @@ type Results struct {
 	Clarifai  Company
 	Companies []Company
 	Image     string //to display the original image at the top of the screen
+  Archive bool //tells javascript whether or not to preserve the html of the response for the archive
 }
 
 func main() {
@@ -48,6 +49,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/", index)
+  http.HandleFunc("/writearchive/", write_to_file)
+  http.HandleFunc("/resetarchive/", reset_archive)
 
 	fmt.Println("Starting server at localhost", port)
 	http.ListenAndServe(port, nil)
@@ -88,8 +91,11 @@ func index(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		defer image_res.Body.Close()
+    //keep original image_bytes so cropping/boundingBoxes returned by
+    //apis will remain consistent, but resize the picture to display
+    //mostly for the purposes of the archive.
 		image_bytes, _ := ioutil.ReadAll(image_res.Body)
-		base64_string := base64.StdEncoding.EncodeToString(image_bytes)
+		base64_string := Resize_Initial_Image(image_bytes)
 
 		//don"t make requests to any apis, just give prefetched data in format to test out the layout
 		if r.FormValue("layouttest") == "layouttest" {
@@ -105,6 +111,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 		//the results object to write the responses to as they are passed to the channel
 		//will be passed to the html once filled
 		var results Results
+    //set whether or not the screen should be snapshot for the archive
+    results.Archive = (r.FormValue("archive") == "archive")
 		//add the image being analyzed in base64 form
 		results.Image = base64_string
 
@@ -164,6 +172,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
 
 func client_clarifai(imgurl string, image_bytes []byte) *Company {
 	clarifai_predict := clarifai.NewClient(secrets.Clarifai_Client_ID, secrets.Clarifai_Client_Secret)
@@ -384,7 +393,6 @@ func request_google(imgurl string, image_bytes []byte, model_id string) *Company
 			g.Tags = append(g.Tags, Tag{Image: Google_Image_Crop(box, image_bytes), Score: tag.Score})
 		}
 	}
-  fmt.Println(g)
 	return &g
 }
 
@@ -546,7 +554,22 @@ func client_amazon(image_bytes []byte, model_id string) *Company {
 			a.Tags = append(a.Tags, Tag{Label: *tag.Name, Score: float32(*tag.Confidence)})
 		}
 	} else if model_id == "Face" {
-
+    input := rekognition.DetectFacesInput{Image: &image}
+    start := time.Now()
+    resp, err := rek.DetectFaces(&input)
+    elapsed := time.Since(start)
+    fmt.Println(resp)
+    if err != nil {
+      panic(err)
+    }
+    a.Elapsed = elapsed.Seconds()
+    for _, tag := range resp.FaceDetails {
+      box := ClarifaiBound{Top: float32(*tag.BoundingBox.Top),
+        Bottom: float32(*tag.BoundingBox.Top + *tag.BoundingBox.Height),
+        Left: float32(*tag.BoundingBox.Left),
+        Right: float32(*tag.BoundingBox.Left + *tag.BoundingBox.Width)}
+      a.Tags = append(a.Tags, Tag{Image: Clarifai_Image_Crop(box, image_bytes), Score: float32(*tag.Confidence)})
+    }
 	}
 
 	return &a
@@ -597,4 +620,48 @@ func request_ibm(imgurl string, image_bytes []byte, model_id string) *Company {
 	}
 
 	return &i
+}
+
+func write_to_file(w http.ResponseWriter, r *http.Request) {
+  if r.Method == "POST" {
+    body, err := ioutil.ReadAll(r.Body)
+    if err != nil {
+        panic(err)
+    }
+    f, err := os.OpenFile("static/archive.html", os.O_APPEND|os.O_WRONLY, 0666)
+    if err != nil {
+      panic(err)
+    }
+    _, err = f.Write(body)
+    if err != nil {
+      panic(err)
+    }
+    f.Close()
+  }
+}
+
+func reset_archive(w http.ResponseWriter, r *http.Request) {
+  if r.Method == "POST"{
+    body := `<head><link href="/static/css/bootstrap-theme.min.css" type="text/css" rel="stylesheet"/>
+    <link href="/static/css/bootstrap.min.css" type="text/css" rel="stylesheet"/>
+    <link href="/static/css/extra.css" type="text/css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:500" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/static/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/js/tweaks.js"></script>
+  </head><div id="currently-archive" style="display: none;"></div><button type="button" id="reset-archive" class="btn btn-danger">Reset Archive</button>
+  <br/>`
+    f, err := os.OpenFile("static/archive.html", os.O_TRUNC|os.O_WRONLY, 0666)
+    if err != nil {
+      panic(err)
+    }
+    _, err = f.WriteString(body)
+    if err != nil {
+      panic(err)
+    }
+    f.Close()
+
+    //refresh page
+    //http.Redirect(w,r, "http://localhost:8000/static/archive/", 301)
+  }
 }

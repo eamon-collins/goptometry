@@ -15,9 +15,13 @@ import (
 	"image/png"
 )
 
+const thumbnailSize int = 60
+
+//accepts floats as ratios of the total image dimensions
 type ClarifaiBound struct {
 	Top, Bottom, Left, Right float32
 }
+//accepts ints as actual pixel crop specifications
 type GoogleBound struct {
 	Top, Bottom, Left, Right int
 }
@@ -36,7 +40,7 @@ func Clarifai_Image_Crop(bound ClarifaiBound, image_bytes []byte) string {
 	mY := img.Bounds().Max.Y
 	crop := image.Rectangle{image.Point{int(bound.Left * float32(mX)), int(bound.Top * float32(mY))}, image.Point{int(bound.Right * float32(mX)), int(bound.Bottom * float32(mY))}}
 	cropped := imaging.Crop(img, crop)
-	resized := imaging.Resize(cropped, 40, 40, imaging.Lanczos)
+	resized := imaging.Resize(cropped, thumbnailSize, thumbnailSize, imaging.Lanczos)
 
 	var buff bytes.Buffer
 	png.Encode(&buff, resized)
@@ -55,7 +59,23 @@ func Google_Image_Crop(bound GoogleBound, image_bytes []byte) string {
 
 	crop := image.Rectangle{image.Point{bound.Left, bound.Top}, image.Point{bound.Right, bound.Bottom}}
 	cropped := imaging.Crop(img, crop)
-	resized := imaging.Resize(cropped, 40, 40, imaging.Lanczos)
+	resized := imaging.Resize(cropped, thumbnailSize, thumbnailSize, imaging.Lanczos)
+
+	var buff bytes.Buffer
+	png.Encode(&buff, resized)
+	b64string := base64.StdEncoding.EncodeToString(buff.Bytes())
+
+	return b64string
+}
+
+func Resize_Initial_Image(image_bytes []byte) string {
+	buf := bytes.NewBuffer(image_bytes)
+	img, _, err := image.Decode(buf)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resized := imaging.Resize(img, 400, 0, imaging.Lanczos)
 
 	var buff bytes.Buffer
 	png.Encode(&buff, resized)
